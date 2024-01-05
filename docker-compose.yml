@@ -5,13 +5,20 @@ services:
             context: ./
             dockerfile: DockerfileClient
         tty: true
+        environment:
+            SERVER_ADDR: server:50051
         networks:
             - service-network
+        depends_on:
+            server:
+                condition: service_started
     server:
         build:
             context: ./
             dockerfile: DockerfileServer
         tty: true
+        environment:
+            PORT: 50051
         networks:
             - service-network
 networks:

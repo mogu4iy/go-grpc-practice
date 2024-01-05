@@ -3,11 +3,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	"github.com/joho/godotenv"
 	"go-grpc-practice/internal/helloworld"
 	"go-grpc-practice/internal/interceptor"
 	"log"
+	"os"
 	"time"
 
 	pb "go-grpc-practice/api/proto/greeter"
@@ -15,19 +16,20 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	defaultName = "world"
-)
-
-var (
-	addr = flag.String("addr", "server:50051", "the address to connect to")
-	name = flag.String("name", defaultName, "Name to greet")
-)
+const name = "world"
 
 func main() {
-	flag.Parse()
-	// Set up a connection to the server.
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(interceptor.ChainClient(helloworld.SignatureSetInterceptor)))
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Print(".env file is absent")
+		err = nil
+	}
+	addr, ok := os.LookupEnv("SERVER_ADDR")
+	if !ok {
+		log.Fatal("SERVER_ADDR env is absent")
+	}
+
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(interceptor.ChainClient(helloworld.SignatureSetInterceptor)))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -42,7 +44,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	
-	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: *name})
+	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: name})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
